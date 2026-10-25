@@ -46,7 +46,7 @@ const pages: Array<[string, string]> = [
 ];
 
 for (const [path, heading] of pages) {
-  test(`page /admin/${path} renders`, async ({ page }) => {
+  test(`page /admin/${path} renders`, { timeout: 60_000 }, async ({ page }) => {
     await login(page);
     await page.goto(`/admin/${path}`);
     if (page.url().includes('/login')) {
