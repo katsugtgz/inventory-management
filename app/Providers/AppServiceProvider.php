@@ -10,6 +10,8 @@ use App\Observers\PurchaseItemTotalsObserver;
 use App\Observers\SaleItemObserver;
 use App\Observers\SaleItemTotalsObserver;
 use App\Observers\StockAdjustmentObserver;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -32,5 +34,10 @@ class AppServiceProvider extends ServiceProvider
         SaleItem::observe(SaleItemObserver::class);
         SaleItem::observe(SaleItemTotalsObserver::class);
         StockAdjustment::observe(StockAdjustmentObserver::class);
+
+        // Filament caps login attempts at 6/minute; e2e suites log in per test.
+        if ($this->app->environment('testing')) {
+            RateLimiter::for('filament:auth', fn (): Limit => Limit::none());
+        }
     }
 }

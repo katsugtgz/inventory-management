@@ -197,6 +197,7 @@ jobs:
       - name: Prepare application
         run: |
           cp .env.example .env
+          sed -i 's/^APP_ENV=.*/APP_ENV=testing/' .env
           php artisan key:generate
           chmod -R 777 storage bootstrap/cache
           mkdir -p public/build
