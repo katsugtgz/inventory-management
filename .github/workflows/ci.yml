@@ -1,0 +1,236 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    name: Pint + Tests (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: [8.3, 8.4, 8.5]
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: testing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_mysql, gd, intl
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install Composer dependencies
+        uses: ramsey/composer-install@v4
+
+      - name: Install Node dependencies & build assets
+        run: |
+          npm ci --ignore-scripts || npm install --ignore-scripts
+          npm run build
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Directory permissions
+        run: chmod -R 777 storage bootstrap/cache
+
+      - name: Code style (Pint, dry run)
+        run: vendor/bin/pint --test
+
+      - name: Dry-run build checks
+        run: |
+          php artisan config:cache --ansi
+          php artisan route:cache --ansi
+          php artisan view:cache --ansi
+          php artisan config:clear --ansi
+
+      - name: Run tests
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: testing
+          DB_USERNAME: root
+          DB_PASSWORD: ''
+        run: php artisan test
+
+      - name: Upload test artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: failures-php${{ matrix.php }}
+          path: |
+            storage/logs/*.log
+          if-no-files-found: ignore
+
+  coverage:
+    name: Test coverage
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: testing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.5
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_mysql, gd, intl
+          coverage: xdebug
+
+      - name: Install Composer dependencies
+        uses: ramsey/composer-install@v4
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          chmod -R 777 storage bootstrap/cache
+
+      - name: Run tests with coverage
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: testing
+          DB_USERNAME: root
+          DB_PASSWORD: ''
+        run: vendor/bin/phpunit --coverage-text=coverage.txt --coverage-clover coverage.xml
+
+      - name: Coverage text report
+        run: |
+          cat coverage.txt 2>/dev/null || true
+          echo "Clover report at coverage.xml"
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage
+          path: coverage.xml
+
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: testing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: testing
+      DB_USERNAME: root
+      DB_PASSWORD: ''
+      E2E_BASE_URL: http://127.0.0.1:8080
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.5
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_mysql, gd, intl, fileinfo
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install Composer dependencies
+        uses: ramsey/composer-install@v4
+
+      - name: Install Node dependencies
+        run: npm ci --ignore-scripts || npm install --ignore-scripts
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Prepare application
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          chmod -R 777 storage bootstrap/cache
+          mkdir -p public/build
+          php artisan storage:link || true
+
+      - name: Migrate & seed
+        run: php artisan migrate --force && php artisan db:seed --class=InventoryDemoSeeder --force || true
+
+      - name: Ensure admin user
+        run: |
+          php artisan tinker --execute="
+          \App\Models\User::firstOrCreate(
+              ['email' => 'admin@example.com'],
+              ['name' => 'Admin', 'password' => bcrypt('password')]
+          );
+          echo 'admin ready';
+          "
+
+      - name: Start web server
+        run: |
+          php artisan serve --host=127.0.0.1 --port=8080 > storage/logs/serve.log 2>&1 &
+          sleep 5
+          curl -fsS -o /dev/null http://127.0.0.1:8080/admin/login
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        run: npx playwright test
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: test-results/e2e-report
+          retention-days: 7
