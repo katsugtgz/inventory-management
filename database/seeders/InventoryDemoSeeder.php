@@ -10,6 +10,7 @@ use App\Models\Sale;
 use App\Models\StockAdjustment;
 use App\Models\Supplier;
 use App\Models\Unit;
+use App\Models\User;
 use App\Models\Warehouse;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
@@ -18,6 +19,12 @@ class InventoryDemoSeeder extends Seeder
 {
     public function run(): void
     {
+        // ---- Admin (stock adjustments reference a user) ----
+        $admin = User::query()->firstOrCreate(
+            ['email' => 'admin@example.com'],
+            ['name' => 'Admin', 'password' => bcrypt('password')],
+        );
+
         // ---- Master data ----
         $parentCategories = collect(['Electronics', 'Groceries', 'Stationery', 'Home & Kitchen'])
             ->mapWithKeys(fn ($name) => [$name => Category::create([
@@ -176,7 +183,7 @@ class InventoryDemoSeeder extends Seeder
             'type' => 'subtract',
             'quantity' => 2,
             'reason' => 'Damaged during transit',
-            'adjusted_by' => 1,
+            'adjusted_by' => $admin->id,
         ]);
 
         StockAdjustment::create([
@@ -185,7 +192,7 @@ class InventoryDemoSeeder extends Seeder
             'type' => 'add',
             'quantity' => 5,
             'reason' => 'Stock count correction',
-            'adjusted_by' => 1,
+            'adjusted_by' => $admin->id,
         ]);
     }
 }
