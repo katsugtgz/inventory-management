@@ -36,8 +36,12 @@ class AppServiceProvider extends ServiceProvider
         StockAdjustment::observe(StockAdjustmentObserver::class);
 
         // Filament caps login attempts at 6/minute; e2e suites log in per test.
-        if ($this->app->environment('testing')) {
-            RateLimiter::for('filament:auth', fn (): Limit => Limit::none());
-        }
+        // Re-registered from booted() so Filament's own limiter cannot
+        // overwrite ours (package boots after app providers).
+        $this->app->booted(function (): void {
+            if ($this->app->environment('testing')) {
+                RateLimiter::for('filament:auth', fn (): Limit => Limit::none());
+            }
+        });
     }
 }
