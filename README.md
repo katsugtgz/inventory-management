@@ -8,7 +8,7 @@ Master data · Purchases · Sales · Stock Ledger · Adjustments · Reports (Exc
 
 [![CI](https://github.com/katsugtgz/inventory-management/actions/workflows/ci.yml/badge.svg)](https://github.com/katsugtgz/inventory-management/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![PHP](https://img.shields.io/badge/PHP-8.3%2B-8892bf)
+![PHP](https://img.shields.io/badge/PHP-8.4%2B-8892bf)
 ![Laravel](https://img.shields.io/badge/Laravel-13-ff2d20)
 ![Filament](https://img.shields.io/badge/Filament-5-f5a623)
 ![MySQL](https://img.shields.io/badge/MySQL-8.4-4479a1)
@@ -105,7 +105,7 @@ CI (GitHub Actions) runs on every push/PR:
 
 - **Pint** — code style, dry-run (`--test`)
 - **Dry-run build checks** — `config:cache` / `route:cache` / `view:cache`
-- **PHPUnit** — feature suite on PHP 8.3 / 8.4 / 8.5 against MySQL 8.4
+- **PHPUnit** — feature suite on PHP 8.4 / 8.5 against MySQL 8.4
 - **Coverage** — clover + text report, uploaded as artifact
 
 ## Reports
