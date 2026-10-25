@@ -226,6 +226,13 @@ jobs:
           sleep 5
           curl -fsS -o /dev/null http://127.0.0.1:8080/admin/login
 
+      - name: Debug - fetch stocks page as guest + authed
+        run: |
+          curl -s -o /dev/null -w 'guest stocks: %{http_code} %{time_total}s
+' http://127.0.0.1:8080/admin/stocks
+          TOKEN=$(curl -s -c /tmp/cj -X POST http://127.0.0.1:8080/login -d 'email=admin@example.com&password=password' -o /dev/null -w '%{http_code}')
+          echo "login post: $TOKEN"
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
