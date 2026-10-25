@@ -38,11 +38,11 @@ const pages: Array<[string, string]> = [
   ['products', 'Products'],
   ['purchases', 'Purchases'],
   ['sales', 'Sales'],
-  ['stocks', 'Stock'],
+  ['stocks', 'Stocks'],
   ['stock-adjustments', 'Stock Adjustments'],
   ['categories', 'Categories'],
   ['warehouses', 'Warehouses'],
-  ['profit-loss-report', 'Profit & Loss'],
+  ['profit-loss-report', 'Profit Loss Report'],
 ];
 
 for (const [path, heading] of pages) {
