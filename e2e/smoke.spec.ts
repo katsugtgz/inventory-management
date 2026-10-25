@@ -7,7 +7,7 @@ async function login(page: import('@playwright/test').Page) {
   for (let attempt = 1; attempt <= 3; attempt++) {
     await page.goto('/admin/login');
     await page.getByLabel('Email address').fill(ADMIN_EMAIL);
-    await page.locator('input[type="password"]').fill(ADMIN_PASSWORD);
+    await page.getByRole('textbox', { name: 'Password' }).fill(ADMIN_PASSWORD);
     await page.getByRole('button', { name: 'Sign in' }).click();
     try {
       await expect(page, 'login should reach dashboard').toHaveURL(/\/admin(?:\?.*)?$/, { timeout: 15_000 });
