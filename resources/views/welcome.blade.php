@@ -179,6 +179,12 @@ table.buku{
 .buku tbody tr:nth-child(3){animation-delay:.65s}
 .buku tbody tr:nth-child(4){animation-delay:.9s}
 .buku tbody tr:nth-child(5){animation-delay:1.15s}
+/* 5 kolom nowrap tidak muat di layar sempit: kecilkan, sisanya geser */
+@media (max-width:47.99em){
+  .kartu{overflow-x:auto}
+  .buku{font-size:.75rem}
+  .buku th,.buku td{padding:.5rem .6rem}
+}
 
 /* running totals under the card */
 .saldo-strip{
@@ -307,7 +313,7 @@ footer.kaki{
   font-family:var(--mono);font-size:.78rem;color:var(--ink-soft);
 }
 .kaki .wrap{display:flex;gap:1.5rem;flex-wrap:wrap;justify-content:space-between}
-.kaki a{color:inherit}
+.kaki a{color:inherit;text-decoration:underline;text-underline-offset:3px}
 
 @media print{
   .topline,.hero-cta,.cta-strip{display:none}
