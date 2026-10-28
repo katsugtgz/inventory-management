@@ -5,73 +5,214 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Laravel 13 + Filament 5 — Inventory Management</title>
 <style>
-  :root { color-scheme: dark; }
+  :root {
+    color-scheme: dark;
+    --ink: #0e1420;
+    --ink-2: #131b2b;
+    --line: #26304422;
+    --line-strong: #2c3a55;
+    --text: #dce4f2;
+    --muted: #8d99b4;
+    --amber: #f5b445;
+    --mono: ui-monospace, "Cascadia Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
   * { box-sizing: border-box; }
-  body { margin:0; font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-         background:#0b1220; color:#e6edf3; }
-  main { max-width: 1100px; margin: 0 auto; padding: 48px 20px 80px; }
-  h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); margin: 0 0 4px; }
-  h1 span { color: #7aa2f7; }
-  p.lead { color:#9aa7bd; margin-top:0; }
-  .badges { margin: 12px 0 28px; display:flex; gap:8px; flex-wrap:wrap; }
-  .badges img { height:20px; }
-  .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(460px, 1fr)); gap: 20px; }
-  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
-  figure { margin:0; background:#111a2c; border:1px solid #1f2b45; border-radius:12px; overflow:hidden; }
-  figure img { width:100%; display:block; border-bottom:1px solid #1f2b45; }
-  figcaption { padding:12px 14px; display:flex; flex-direction:column; gap:2px; }
-  figcaption strong { color:#c9d6e8; }
-  figcaption span { color:#8b98ad; font-size:.85rem; }
-  a { color:#7aa2f7; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font: 16px/1.65 var(--sans);
+    color: var(--text);
+    background: var(--ink);
+    /* ledger motif: fine ruled lines, like a stock ledger page */
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0 47px,
+      #ffffff08 47px 48px
+    );
+  }
+  a { color: var(--amber); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  :focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; border-radius: 2px; }
+  img { display: block; }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+  header { border-block-end: 1px solid var(--line-strong); }
+  .bar {
+    display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+    padding-block: 18px;
+  }
+  .bar .name { font: 600 15px/1 var(--mono); letter-spacing: 0; }
+  .bar .name b { color: var(--amber); font-weight: 600; }
+  .bar .meta { margin-inline-start: auto; font: 12px/1 var(--mono); color: var(--muted); }
+
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: clamp(24px, 5vw, 56px);
+    align-items: center;
+    padding-block: clamp(48px, 9vw, 96px) clamp(40px, 7vw, 72px);
+  }
+  h1 {
+    margin: 0 0 16px;
+    font-size: clamp(1.9rem, 4.6vw, 3.3rem);
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    font-weight: 680;
+    max-inline-size: 18ch;
+    text-wrap: balance;
+  }
+  h1 .plus { color: var(--amber); font-weight: 500; }
+  p.lead {
+    margin: 0 0 24px;
+    color: var(--muted);
+    max-inline-size: 44ch;
+    font-size: 1.02rem;
+  }
+  .badges { display: flex; gap: 8px; flex-wrap: wrap; }
+  .badges img { height: 20px; }
+
+  /* screenshot framed as the app window itself */
+  .window {
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--ink-2);
+    box-shadow: 0 24px 60px -28px #000000cc, 0 0 0 1px #ffffff06;
+  }
+  .window .chrome {
+    display: flex; align-items: center; gap: 6px;
+    padding: 9px 12px;
+    border-block-end: 1px solid var(--line-strong);
+    font: 11px/1 var(--mono); color: var(--muted);
+  }
+  .window .chrome i {
+    inline-size: 9px; block-size: 9px; border-radius: 50%;
+    background: var(--line-strong);
+  }
+  .window .chrome i:first-child { background: var(--amber); }
+  .window .chrome span { margin-inline-start: 8px; }
+  .window img { inline-size: 100%; aspect-ratio: 1264 / 569; object-fit: cover; }
+
+  /* modules: hairline-divided, not card soup */
+  .modules { padding-block: 8px 88px; }
+  .modules h2 {
+    font: 600 12px/1 var(--mono);
+    color: var(--muted);
+    margin: 0 0 28px;
+    padding-block-end: 14px;
+    border-block-end: 1px solid var(--line-strong);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(440px, 100%), 1fr));
+    gap: 1px;
+    background: var(--line-strong);
+    border-block-end: 1px solid var(--line-strong);
+  }
+  figure {
+    margin: 0;
+    padding: 20px 20px 24px;
+    background: var(--ink);
+    content-visibility: auto;
+    contain-intrinsic-size: auto 420px;
+  }
+  figure img {
+    inline-size: 100%;
+    aspect-ratio: 1264 / 569;
+    object-fit: cover;
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    background: var(--ink-2);
+  }
+  figcaption { padding: 14px 2px 0; }
+  figcaption strong { font-size: 1rem; letter-spacing: -0.01em; }
+  figcaption span { display: block; color: var(--muted); font-size: 0.88rem; margin-block-start: 4px; max-inline-size: 60ch; }
+
+  footer { border-block-start: 1px solid var(--line-strong); }
+  footer .wrap {
+    display: flex; gap: 16px; flex-wrap: wrap; justify-content: space-between;
+    padding-block: 22px;
+    font: 12px/1.5 var(--mono); color: var(--muted);
+  }
+
+  @media (max-width: 860px) {
+    .hero { grid-template-columns: 1fr; }
+    .hero .window { order: -1; }
+    h1 { max-inline-size: none; }
+  }
+
+  /* one orchestrated moment: hero window settles in on load */
+  @media (prefers-reduced-motion: no-preference) {
+    .hero .window { animation: settle 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+    @keyframes settle {
+      from { opacity: 0; translate: 0 18px; }
+      to { opacity: 1; translate: 0 0; }
+    }
+  }
 </style>
 </head>
 <body>
-<main>
-  <h1>Laravel 13 <span>+</span> Filament 5 Inventory Management</h1>
-  <p class="lead">Master data, purchases &amp; sales with repeater line items, observer-driven stock ledger, adjustments, dashboard and filter-aware Excel/PDF reports.</p>
-  <div class="badges">
-    <img alt="CI" src="https://github.com/katsugtgz/inventory-management/actions/workflows/ci.yml/badge.svg">
-    <img alt="License" src="https://img.shields.io/badge/license-MIT-blue.svg">
-    <img alt="PHP" src="https://img.shields.io/badge/PHP-8.3%2B-8892bf.svg">
-    <img alt="Laravel" src="https://img.shields.io/badge/Laravel-13-ff2d20.svg">
-    <img alt="Filament" src="https://img.shields.io/badge/Filament-5-f5a623.svg">
+<header>
+  <div class="wrap bar">
+    <span class="name">inventory<b>·</b>management</span>
+    <span class="meta">ledger-driven stock · built on Laravel 13 &amp; Filament 5</span>
   </div>
+</header>
+
+<section class="wrap hero">
+  <div>
+    <h1>Laravel 13 <span class="plus">+</span> Filament 5 Inventory Management</h1>
+    <p class="lead">Master data, purchases &amp; sales with repeater line items, observer-driven stock ledger, adjustments, dashboard and filter-aware Excel/PDF reports.</p>
+    <div class="badges">
+      <img alt="CI" src="https://github.com/katsugtgz/inventory-management/actions/workflows/ci.yml/badge.svg">
+      <img alt="License" src="https://img.shields.io/badge/license-MIT-blue.svg">
+      <img alt="PHP" src="https://img.shields.io/badge/PHP-8.3%2B-8892bf.svg">
+      <img alt="Laravel" src="https://img.shields.io/badge/Laravel-13-ff2d20.svg">
+      <img alt="Filament" src="https://img.shields.io/badge/Filament-5-f5a623.svg">
+    </div>
+  </div>
+  <div class="window">
+    <div class="chrome"><i></i><i></i><i></i><span>dashboard</span></div>
+    <img src="../screenshots/01-dashboard.png" alt="Dashboard screenshot" width="1264" height="569" fetchpriority="high">
+  </div>
+</section>
+
+<section class="wrap modules">
+  <h2>modules</h2>
   <div class="grid">
-      <figure>
-        <img src="screenshots/01-dashboard.png" alt="Dashboard screenshot" loading="lazy">
-        <figcaption><strong>Dashboard</strong><span>Total sales, purchases, stock &amp; adjustment stat cards; monthly sales line chart; top-5 products bar chart.</span></figcaption>
-      </figure>
-
-      <figure>
-        <img src="screenshots/02-products.png" alt="Products screenshot" loading="lazy">
-        <figcaption><strong>Products</strong><span>Image upload, rich editor, category tree, cost/selling price, low-stock threshold.</span></figcaption>
-      </figure>
-
-      <figure>
-        <img src="screenshots/03-purchases.png" alt="Purchases screenshot" loading="lazy">
-        <figcaption><strong>Purchases</strong><span>Supplier documents with Repeater line items; totals derived server-side.</span></figcaption>
-      </figure>
-
-      <figure>
-        <img src="screenshots/04-sales.png" alt="Sales screenshot" loading="lazy">
-        <figcaption><strong>Sales</strong><span>Customer documents; stock auto-decreases via observers.</span></figcaption>
-      </figure>
-
-      <figure>
-        <img src="screenshots/05-stock-overview.png" alt="Stock Overview screenshot" loading="lazy">
-        <figcaption><strong>Stock Overview</strong><span>Read-only ledger-derived stock per product/warehouse with low-stock alerts.</span></figcaption>
-      </figure>
-
-      <figure>
-        <img src="screenshots/06-profit-loss.png" alt="Profit &amp; Loss screenshot" loading="lazy">
-        <figcaption><strong>Profit &amp; Loss</strong><span>Product-level revenue, cost, profit &amp; margin with filter-aware Excel + PDF export.</span></figcaption>
-      </figure>
-
-      <figure>
-        <img src="screenshots/07-purchase-create.png" alt="Purchase Form screenshot" loading="lazy">
-        <figcaption><strong>Purchase Form</strong><span>Repeater line items with live subtotal calculation.</span></figcaption>
-      </figure>
+    <figure>
+      <img src="../screenshots/02-products.png" alt="Products screenshot" loading="lazy" width="1264" height="569">
+      <figcaption><strong>Products</strong><span>Image upload, rich editor, category tree, cost/selling price, low-stock threshold.</span></figcaption>
+    </figure>
+    <figure>
+      <img src="../screenshots/03-purchases.png" alt="Purchases screenshot" loading="lazy" width="1264" height="569">
+      <figcaption><strong>Purchases</strong><span>Supplier documents with Repeater line items; totals derived server-side.</span></figcaption>
+    </figure>
+    <figure>
+      <img src="../screenshots/04-sales.png" alt="Sales screenshot" loading="lazy" width="1264" height="569">
+      <figcaption><strong>Sales</strong><span>Customer documents; stock auto-decreases via observers.</span></figcaption>
+    </figure>
+    <figure>
+      <img src="../screenshots/05-stock-overview.png" alt="Stock Overview screenshot" loading="lazy" width="1264" height="569">
+      <figcaption><strong>Stock Overview</strong><span>Read-only ledger-derived stock per product/warehouse with low-stock alerts.</span></figcaption>
+    </figure>
+    <figure>
+      <img src="../screenshots/06-profit-loss.png" alt="Profit &amp; Loss screenshot" loading="lazy" width="1264" height="569">
+      <figcaption><strong>Profit &amp; Loss</strong><span>Product-level revenue, cost, profit &amp; margin with filter-aware Excel + PDF export.</span></figcaption>
+    </figure>
+    <figure>
+      <img src="../screenshots/07-purchase-create.png" alt="Purchase Form screenshot" loading="lazy" width="1264" height="569">
+      <figcaption><strong>Purchase Form</strong><span>Repeater line items with live subtotal calculation.</span></figcaption>
+    </figure>
   </div>
-</main>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>MIT License</span>
+    <span><a href="https://github.com/katsugtgz/inventory-management">github.com/katsugtgz/inventory-management</a></span>
+  </div>
+</footer>
 </body>
 </html>
